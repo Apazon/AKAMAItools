@@ -64,14 +64,14 @@ def getUsers():
 	 print user_result 
 	 user_dump = json.loads(json.dumps(user_result), object_hook=BlankDict)
  	 ## Header
-	 print	"Username;FirstName;LastName;Phone;Role;Group;Email;2faEnabled;2faConfigured;lastLogin"
+	 print	"Username;FirstName;LastName;Phone;Role;Group;Email;userType;2faEnabled;2faConfigured;lastLogin"
 	 for user in user_dump:
 		username=user["username"]
 		firstname = user["firstName"]
 		lastname = user["lastName"]
 		phone = user["phone"]
 		contactId = user["contactId"]
-		usertype = user["userType"]
+		userType = user["userType"]
 		twofaEnabled = user["tfaEnabled"]
 		twofaConfigured = user["tfaConfigured"]
 		if user["lastLoginDate"]:
@@ -82,7 +82,7 @@ def getUsers():
 		for j in user["roleAssignments"]:
 			role = j["roleName"]
 			group = j["groupName"]
-			print username,";",firstname,";",lastname,";",phone,";",role,";",group,";",email,";",twofaEnabled,";",twofaConfigured,";",lastlogin
+			print username,";",firstname,";",lastname,";",phone,";",role,";",group,";",email,";",userType,";",twofaEnabled,";",twofaConfigured,";",lastlogin
 
 if __name__ == "__main__":
 	Id = {}
