@@ -8,7 +8,7 @@ This is more of sample code than anything else.
 
 """
 
-import requests, logging, json
+import requests, logging, json, sys
 from random import randint
 from akamai.edgegrid import EdgeGridAuth
 from config import EdgeGridConfig
@@ -58,12 +58,20 @@ class BlankDict(dict):
         def __missing__(self, key):
             return ''
 def getUsers():
-	 print "======== USERS FOR CONTRACT "+contractID+"===="
 	 user_url = '/user-admin/v1/accounts/'+contractID+'/users'
 	 user_result = getResult(user_url)  
-	 print user_result 
 	 user_dump = json.loads(json.dumps(user_result), object_hook=BlankDict)
+	 try:	
+		if str(user_dump["httpStatus"]) == "403":
+			print "Permisions Error"
+			raise SystemExit
+		if str(user_dump["httpStatus"]) == "401":
+			print "Permisions Error"
+			raise SystemExit
+	 except (TypeError):
+		pass
  	 ## Header
+	 print "======== USERS FOR CONTRACT "+contractID+"===="
 	 print	"Username;FirstName;LastName;Phone;Role;Group;Email;userType;2faEnabled;2faConfigured;lastLogin"
 	 for user in user_dump:
 		username=user["username"]
