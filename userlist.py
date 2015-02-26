@@ -62,12 +62,17 @@ def getUsers():
 	 user_url = '/user-admin/v1/accounts/'+contractID+'/users'
 	 user_result = getResult(user_url)   
 	 user_dump = json.dumps(user_result)
+ 	 ## Header
+	 print	"Username;FirstName;LastName;Phone;Role;Group;Email;2faEnabled;2faConfigured;lastLogin"
 	 for user in json.loads(user_dump, object_hook=BlankDict):
 		username=user["username"]
 		firstname = user["firstName"]
 		lastname = user["lastName"]
 		phone = user["phone"]
 		contactId = user["contactId"]
+		usertype = user["userType"]
+		twofaEnabled = user["tfaEnabled"]
+		twofaConfigured = user["tfaConfigured"]
 		if user["lastLoginDate"]:
 			lastlogin = user["lastLoginDate"]
 		else:
@@ -76,7 +81,7 @@ def getUsers():
 		for j in user["roleAssignments"]:
 			role = j["roleName"]
 			group = j["groupName"]
-			print username,";",firstname,";",lastname,";",phone,";",role,";",group,";",email,";",lastlogin
+			print username,";",firstname,";",lastname,";",phone,";",role,";",group,";",email,";",twofaEnabled,";",twofaConfigured,";",lastlogin
 
 if __name__ == "__main__":
 	Id = {}
