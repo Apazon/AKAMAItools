@@ -60,11 +60,12 @@ class BlankDict(dict):
 def getUsers():
 	 print "======== USERS FOR CONTRACT "+contractID+"===="
 	 user_url = '/user-admin/v1/accounts/'+contractID+'/users'
-	 user_result = getResult(user_url)   
-	 user_dump = json.dumps(user_result)
+	 user_result = getResult(user_url)  
+	 print user_result 
+	 user_dump = json.loads(json.dumps(user_result), object_hook=BlankDict)
  	 ## Header
 	 print	"Username;FirstName;LastName;Phone;Role;Group;Email;2faEnabled;2faConfigured;lastLogin"
-	 for user in json.loads(user_dump, object_hook=BlankDict):
+	 for user in user_dump:
 		username=user["username"]
 		firstname = user["firstName"]
 		lastname = user["lastName"]
