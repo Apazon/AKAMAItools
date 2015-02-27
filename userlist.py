@@ -18,7 +18,7 @@ import os
 from pprint import pprint
 session = requests.Session()
 debug = False
-contract = "XXX-XXXX"
+contractID="XXX-XXXX"
 
 config = EdgeGridConfig({},"user")
 
@@ -57,10 +57,7 @@ def getResult(endpoint, parameters=None):
 class BlankDict(dict):
         def __missing__(self, key):
             return ''
-def getUsers(contractID):
-	 if contractID.startswith("XXX-XXXX"):
-		print "Please edit this file and change contractID variable"
-		raise SystemExit
+def getUsers():
 	 user_url = '/user-admin/v1/accounts/'+contractID+'/users'
 	 user_result = getResult(user_url)  
 	 user_dump = json.loads(json.dumps(user_result), object_hook=BlankDict)
@@ -77,8 +74,7 @@ def getUsers(contractID):
 	 cabecera = "USERS FOR CONTRACT "+contractID
 	 print cabecera.center(50,"=")
 	 print	"Username;FirstName;LastName;Phone;Role;Group;Email;userType;2faEnabled;2faConfigured;lastLogin"
-	 while user_dump:
-		user = user_dump.pop()
+	 for user in user_dump:
 		username=user["username"]
 		firstname = user["firstName"]
 		lastname = user["lastName"]
@@ -92,13 +88,11 @@ def getUsers(contractID):
 		else:
 			lastlogin = ""
 		email = user["email"]
-		roles = user["roleAssignments"]
-		while roles:
-			j = roles.pop()
+		for j in user["roleAssignments"]:
 			role = j["roleName"]
 			group = j["groupName"]
 			print username,";",firstname,";",lastname,";",phone,";",role,";",group,";",email,";",userType,";",twofaEnabled,";",twofaConfigured,";",lastlogin
 
 if __name__ == "__main__":
 	Id = {}
-	getUsers(contract)
+	getUsers()
