@@ -59,7 +59,7 @@ class BlankDict(dict):
             return ''
 def getUsers(contractID):
 	 if contractID.startswith("XXX-XXXX"):
-		print "Please edit this file and change contractID variable"
+		print "Please edit this file and change contract variable"
 		raise SystemExit
 	 user_url = '/user-admin/v1/accounts/'+contractID+'/users'
 	 user_result = getResult(user_url)  
