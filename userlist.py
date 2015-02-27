@@ -61,17 +61,18 @@ def getUsers():
 	 user_url = '/user-admin/v1/accounts/'+contractID+'/users'
 	 user_result = getResult(user_url)  
 	 user_dump = json.loads(json.dumps(user_result), object_hook=BlankDict)
-	 try:	
+   	 try:	
 		if str(user_dump["httpStatus"]) == "403":
 			print "Permisions Error"
 			raise SystemExit
-		if str(user_dump["httpStatus"]) == "401":
+		if str(user_dump["status"]) == "401":
 			print "Permisions Error"
 			raise SystemExit
 	 except (TypeError):
 		pass
  	 ## Header
-	 print "======== USERS FOR CONTRACT "+contractID+"===="
+	 cabecera = "USERS FOR CONTRACT "+contractID
+	 print cabecera.center(50,"=")
 	 print	"Username;FirstName;LastName;Phone;Role;Group;Email;userType;2faEnabled;2faConfigured;lastLogin"
 	 for user in user_dump:
 		username=user["username"]
