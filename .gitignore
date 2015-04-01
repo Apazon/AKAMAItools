@@ -59,5 +59,6 @@ setuptools-7.0.zip
 
 # Tests
 test*
+.*
 *.swp
 *.swo
