@@ -12,6 +12,7 @@ build/
 develop-eggs/
 dist/
 downloads/
+old/
 eggs/
 lib/
 lib64/
