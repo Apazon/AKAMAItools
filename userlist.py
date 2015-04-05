@@ -231,6 +231,7 @@ if len(sys.argv)>1:
 		install(config_file,block)
 else:
 	print "Usage: %s [argvs]" % str(sys.argv[0])
+	exit(99)
 
 
 
