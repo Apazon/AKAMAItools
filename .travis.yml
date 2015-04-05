@@ -9,4 +9,8 @@ python:
 # command to install dependencies
 install:
 #  - python .
+<<<<<<< HEAD
   python userlist.py test
+=======
+  python userlist.py test
+>>>>>>> origin/master
