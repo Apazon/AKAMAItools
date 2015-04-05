@@ -10,7 +10,7 @@ python:
 install:
   - pip install edgegrid-python
   
-test:
+script:
 #  - python .
   python userlist.py test
 
