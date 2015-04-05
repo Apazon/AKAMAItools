@@ -168,7 +168,6 @@ class AKAMAI:
 				exit(3)
 			else:
 				print "Exporting users..."
-				exportados = 0
 		result = self.users()
 		try:	
 			if str(result["httpStatus"]) == "403":
@@ -183,8 +182,9 @@ class AKAMAI:
 			cabecera = " USERS FOR CONTRACT "
 	 		myfile.write(cabecera.center(50,"=")+"\n")
 	 		myfile.write("Username;FirstName;LastName;Phone;Role;Group;Email;userType;2faEnabled;2faConfigured;lastLogin\n")
+	 		exportados=0
 	 		while result:
-				exportados +=1
+				exportados += 1
 				user = result.pop()
 				username= str(user["username"])
 				firstname = str(user["firstName"])
@@ -220,7 +220,6 @@ class AKAMAI:
 				exit(3)
 			else:
 				print "Exporting groups..."
-				exportados = 0
 		result = self.groups()
 		try:	
 			if str(result["httpStatus"]) == "403":
@@ -235,6 +234,7 @@ class AKAMAI:
 			cabecera = " GROUPS FOR CONTRACT "
 	 		myfile.write(cabecera.center(50,"=")+"\n")
 	 		myfile.write("GroupID;accountId;groupName;topLevelGroup;parentGroupId;createdBy;createdDate\n")
+	 		exportados = 0
 			while result:
 				exportados +=1
 				group = result.pop()
@@ -262,7 +262,6 @@ class AKAMAI:
 				exit(3)
 			else:
 				print "Exporting roles..."
-				exportados = 0
 		result = self.roles()
 		try:	
 			if str(result["httpStatus"]) == "403":
@@ -277,6 +276,7 @@ class AKAMAI:
 			cabecera = " ROLES FOR CONTRACT "
 	 		myfile.write(cabecera.center(50,"=")+"\n")
 	 		myfile.write("roles_dump;roleName;roleDescription;contractTypeId;numUsers;type;modifiedBy;modifiedDate\n")
+	 		exportados = 0
 			while result:
 				exportados += 1
 				role = result.pop()
