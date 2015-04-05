@@ -8,7 +8,7 @@ python:
   - "3.4"
 # command to install dependencies
 install:
-  - pip install EdgeGridAuth
+  - pip install edgegrid-python
 test:
 #  - python .
   python userlist.py test
