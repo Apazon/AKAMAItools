@@ -385,7 +385,7 @@ if len(sys.argv)>1:
 			exit(1)
 		install(config_file,block)
 else:
-	print "Usage: %s [argvs]" % str(sys.argv[0])
+	print "Usage: %s config|initiate|test|export_users|export_groups|export_roles|export_all [argvs]" % str(sys.argv[0])
 	exit(99)
 
 
