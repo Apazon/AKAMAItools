@@ -9,7 +9,7 @@ python:
 # command to install dependencies
 install:
   - pip install .
-  - pip install -r requirements.txt
+  - pip install EdgeGridAuth
 test:
 #  - python .
   python userlist.py test
