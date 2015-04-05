@@ -9,6 +9,6 @@ install:
   - pip install edgegrid-python
   
 script:
-#  - python .
+#  This test do nothing
   python userlist.py test
 
