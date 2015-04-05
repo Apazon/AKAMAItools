@@ -7,10 +7,7 @@ python:
   - "3.3"
   - "3.4"
 # command to install dependencies
-install:
+test:
 #  - python .
-<<<<<<< HEAD
   python userlist.py test
-=======
-  python userlist.py test
->>>>>>> origin/master
+
