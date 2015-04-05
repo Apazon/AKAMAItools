@@ -7,12 +7,9 @@ from akamai.edgegrid import EdgeGridAuth
 from os	import path
 from urlparse import urljoin
 from pprint import pprint
-import unicodedata
-
 
 home = path.expanduser("~")
 config_file = "%s/.edgerc" % home
-
 
 class BlankDict(dict):
         def __missing__(self, key):
@@ -139,24 +136,6 @@ class AKAMAI:
 	 	user_dump = json.loads(json.dumps(user_result), object_hook=BlankDict)
 	 	return user_dump
 
-	def groups(self):
-		if not self.session:
-			self.connection()
-	 	group_url = '/user-admin/v1/accounts/'+self.contract+'/groups'
-		endpoint_result = self.session.get(urljoin(self.baseurl,group_url))
-	 	group_result = endpoint_result.json()
-	 	group_dump = json.loads(json.dumps(group_result), object_hook=BlankDict)
-	 	return group_dump
-
-	def roles(self):
-		if not self.session:
-			self.connection()
-	 	roles_url = '/user-admin/v1/accounts/'+self.contract+'/roles'
-		endpoint_result = self.session.get(urljoin(self.baseurl,roles_url))
-	 	roles_result = endpoint_result.json()
-	 	roles_dump = json.loads(json.dumps(roles_result), object_hook=BlankDict)
-	 	return roles_dump
-
 	def export_userscsv (self,filename=""):
 		if not filename:
 			print "You need to specify a file to export users"
@@ -209,101 +188,6 @@ class AKAMAI:
 				myfile.write(username+";"+firstname+";"+lastname+";"+phone+";"+role+";"+group+";"+email+";"+userType+";"+twofaEnabled+";"+twofaConfigured+";"+lastlogin+"\n")
 		print "%i Users exported in %s" % (exportados,filename)
 
-	def export_groupscsv (self,filename=""):
-		if not filename:
-			print "You need to specify a file to export users"
-			exit (2)
-		if path.exists(filename):
-			sure = ""
-			while sure !="y" and sure !="n" and sure !="no" and sure !="yes":
-				sure = raw_input("This file ("+filename+") exists. Do you want to overwrite it(y/n)? ").lower().strip()
-			if sure == "no" or sure == "n":
-				print "Exit. Please review filename for exporting Groups"
-				exit(3)
-			else:
-				print "Exporting groups..."
-				exportados = 0
-		result = self.groups()
-		try:	
-			if str(result["httpStatus"]) == "403":
-				print "Permisions Error"
-				raise SystemExit
-			if str(result["status"]) == "401":
-				print "Permisions Error"
-				raise SystemExit
-	 	except (TypeError):
-			pass
-		with open (filename, "w") as myfile:
-			cabecera = " GROUPS FOR CONTRACT "
-	 		myfile.write(cabecera.center(50,"=")+"\n")
-	 		myfile.write("GroupID;accountId;groupName;topLevelGroup;parentGroupId;createdBy;createdDate\n")
-			while result:
-				exportados +=1
-				group = result.pop()
-				createdBy = str(group["createdBy"])
-				topLevelGroup = str(group["topLevelGroup"])
-				groupName = str(group["groupName"])
-				parentGroupId = str(group["parentGroupId"])
-				accountId = str(group["accountId"])
-				groupId = str(group["groupId"])
-				createdDate = str(group["createdDate"])
-				myfile.write(groupId+";"+accountId+";"+groupName+";"+topLevelGroup+";"+parentGroupId+";"+createdBy+";"+createdDate+"\n")
-			print "%i Groups exported in %s" % (exportados,filename)
-
-
-	def export_rolescsv (self,filename=""):
-		if not filename:
-			print "You need to specify a file to export users"
-			exit (2)
-		if path.exists(filename):
-			sure = ""
-			while sure !="y" and sure !="n" and sure !="no" and sure !="yes":
-				sure = raw_input("This file ("+filename+") exists. Do you want to overwrite it(y/n)? ").lower().strip()
-			if sure == "no" or sure == "n":
-				print "Exit. Please review filename for exporting Roles"
-				exit(3)
-			else:
-				print "Exporting roles..."
-				exportados = 0
-		result = self.roles()
-		try:	
-			if str(result["httpStatus"]) == "403":
-				print "Permisions Error"
-				raise SystemExit
-			if str(result["status"]) == "401":
-				print "Permisions Error"
-				raise SystemExit
-	 	except (TypeError):
-			pass
-		with open (filename, "w") as myfile:
-			cabecera = " ROLES FOR CONTRACT "
-	 		myfile.write(cabecera.center(50,"=")+"\n")
-	 		myfile.write("roles_dump;roleName;roleDescription;contractTypeId;numUsers;type;modifiedBy;modifiedDate\n")
-			while result:
-				exportados += 1
-				role = result.pop()
-				roleId = str(role["roleId"])
-				contractTypeId = str(role["contractTypeId"])
-				roleDescription = role["roleDescription"]
-				for char in "'":
-					roleDescription = roleDescription.replace(char,'')
-				## FIX por a error that I cant understand
-				roleDescription = roleDescription.replace(u'\x9d',"")
-				modifiedBy = str(role["modifiedBy"])
-				modifiedDate = str(role["modifiedDate"])
-				numUsers = str(role["numUsers"])
-				roleName = str(role["roleName"])
-				roletype = str(role["type"])
-				myfile.write(roleId+";"+roleName+";"+roleDescription+";"+contractTypeId+";"+numUsers+";"+roletype+";"+modifiedBy+";"+modifiedDate+"\n")
-			print "%i Roles exported in %s" % (exportados,filename)
-
-	def export_allcsv (self,filename=""):
-		filename_users=filename+"_users"
-		self.export_userscsv(filename_users)
-		filename_groups=filename+"_groups"
-		self.export_groupscsv(filename_groups)
-		filename_roles=filename+"_roles"
-		self.export_rolescsv(filename_roles)
 
 
 ## Codigo por defecto
@@ -335,48 +219,7 @@ if len(sys.argv)>1:
 		else:
 			print "%s %s export_file [contract [config_file]]]" % (sys.argv[0], sys.argv[1])
 			exit(1)
-	elif command == "export_groups":
-		block = "user"
-		if len(sys.argv)==3:
-			AKAMAI_instance = AKAMAI(block,config_file).export_groupsscsv(sys.argv[2])
-		elif len(sys.argv)==4:
-			contract = sys.argv[3]
-			AKAMAI_instance = AKAMAI(block,config_file,contract).export_groupscsv(sys.argv[2])
-		elif len(sys.argv)==5:
-			contract = sys.argv[3]
-			config_file = sys.argv[4]
-			AKAMAI_instance = AKAMAI(block,config_file,contract).export_groupscsv(sys.argv[2])
-		else:
-			print "%s %s export_file [contract [config_file]]]" % (sys.argv[0], sys.argv[1])
-			exit(1)
-	elif command == "export_roles":
-		block = "user"
-		if len(sys.argv)==3:
-			AKAMAI_instance = AKAMAI(block,config_file).export_rolescsv(sys.argv[2])
-		elif len(sys.argv)==4:
-			contract = sys.argv[3]
-			AKAMAI_instance = AKAMAI(block,config_file,contract).export_rolescsv(sys.argv[2])
-		elif len(sys.argv)==5:
-			contract = sys.argv[3]
-			config_file = sys.argv[4]
-			AKAMAI_instance = AKAMAI(block,config_file,contract).export_rolesscsv(sys.argv[2])
-		else:
-			print "%s %s export_file [contract [config_file]]]" % (sys.argv[0], sys.argv[1])
-			exit(1)
-	elif command == "export_all":
-		block = "user"
-		if len(sys.argv)==3:
-			AKAMAI_instance = AKAMAI(block,config_file).export_allcsv(sys.argv[2])
-		elif len(sys.argv)==4:
-			contract = sys.argv[3]
-			AKAMAI_instance = AKAMAI(block,config_file,contract).export_allcsv(sys.argv[2])
-		elif len(sys.argv)==5:
-			contract = sys.argv[3]
-			config_file = sys.argv[4]
-			AKAMAI_instance = AKAMAI(block,config_file,contract).export_allcsv(sys.argv[2])
-		else:
-			print "%s %s export_file [contract [config_file]]]" % (sys.argv[0], sys.argv[1])
-			exit(1)
+
 	elif command == "config":
 		if len(sys.argv)==3:
 			block = sys.argv[2]
@@ -392,4 +235,6 @@ else:
 
 
 
+#AKAMAI_instance = AKAMAI ("user",config_file)
+#AKAMAI_instance.connection()
 
