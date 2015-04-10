@@ -128,34 +128,15 @@ class AKAMAI:
 		self.session = requests.Session()
 		self.session.auth = EdgeGridAuth(self.client_token,self.client_secret,self.access_token)
 
-	def users(self):
+	def get_info(self,url):
 		if not self.session:
 			self.connection()
-	 	user_url = '/user-admin/v1/accounts/'+self.contract+'/users'
-		endpoint_result = self.session.get(urljoin(self.baseurl,user_url))
-	 	user_result = endpoint_result.json()
-	 	user_dump = json.loads(json.dumps(user_result), object_hook=BlankDict)
-	 	return user_dump
+		endpoint_result = self.session.get(urljoin(self.baseurl,url))
+	 	result = endpoint_result.json()
+	 	dump = json.loads(json.dumps(result), object_hook=BlankDict)
+	 	return dump
 
-	def groups(self):
-		if not self.session:
-			self.connection()
-	 	group_url = '/user-admin/v1/accounts/'+self.contract+'/groups'
-		endpoint_result = self.session.get(urljoin(self.baseurl,group_url))
-	 	group_result = endpoint_result.json()
-	 	group_dump = json.loads(json.dumps(group_result), object_hook=BlankDict)
-	 	return group_dump
-
-	def roles(self):
-		if not self.session:
-			self.connection()
-	 	roles_url = '/user-admin/v1/accounts/'+self.contract+'/roles'
-		endpoint_result = self.session.get(urljoin(self.baseurl,roles_url))
-	 	roles_result = endpoint_result.json()
-	 	roles_dump = json.loads(json.dumps(roles_result), object_hook=BlankDict)
-	 	return roles_dump
-
-	def export_userscsv (self,filename=""):
+	def export_info(self,url,args,filename=""):
 		if not filename:
 			print "You need to specify a file to export users"
 			exit (2)
@@ -167,8 +148,8 @@ class AKAMAI:
 				print "Exit. Please review filename for exporting users"
 				exit(3)
 			else:
-				print "Exporting users..."
-		result = self.users()
+				print "Exporting..."
+		result = self.get_info(url)
 		try:	
 			if str(result["httpStatus"]) == "403":
 				print "Permisions Error"
@@ -179,121 +160,80 @@ class AKAMAI:
 	 	except (TypeError):
 			pass
 		with open (filename, "w") as myfile:
-			cabecera = " USERS FOR CONTRACT "
-	 		myfile.write(cabecera.center(50,"=")+"\n")
-	 		myfile.write("Username;FirstName;LastName;Phone;Role;Group;Email;userType;2faEnabled;2faConfigured;lastLogin\n")
-	 		exportados=0
-	 		while result:
-				exportados += 1
-				user = result.pop()
-				username= str(user["username"])
-				firstname = str(user["firstName"])
-				lastname = str(user["lastName"])
-				phone = str(user["phone"])
-				contactId = str(user["contactId"])
-				userType = str(user["userType"])
-				twofaEnabled = str(user["tfaEnabled"])
-				twofaConfigured = str(user["tfaConfigured"])
-				if user["lastLoginDate"]:
-					lastlogin = str(user["lastLoginDate"])
+			exportados=0
+			cabecera = ""
+			for i in args:
+				if i == "roleAssignments":
+					i = "roleName;groupName"
+				cabecera = cabecera + i + ";"
+			cabecera = cabecera + "\n"
+			myfile.write(cabecera)
+			while result:
+				line = ""
+				record = result.pop()
+				if "roleAssignments" in args:
+					roles = record["roleAssignments"]
+					while roles:
+						exportados += 1
+						role = roles.pop()
+						roleName = str(role["roleName"])
+						groupName = str(role["groupName"])
+						line = ""
+						for i in args:
+							if i == "lastLoginDate":
+								if record[i]:
+									line = line + str(record[i]) + ";"
+								else:
+									line = line + "NEVER";"
+							elif i == "roleAssignments":
+								line = line + roleName + ";" + groupName + ";"
+							elif i == "roleDescription":
+								for char in "'":
+									record[i] = record[i].replace(char,'')
+									record[i] = record[i].replace(u'\x9d',"")
+								line = line + str(record[i]) + ";"
+							else:
+								line = line + str(record[i]) + ";"
+						line = line + "\n"
+						myfile.write(line)
 				else:
-					lastlogin = str("")
-				email = str(user["email"])
-				roles = user["roleAssignments"]
-				while roles:
-					j = roles.pop()
-					role = str(j["roleName"])
-					group = str(j["groupName"])
-				myfile.write(username+";"+firstname+";"+lastname+";"+phone+";"+role+";"+group+";"+email+";"+userType+";"+twofaEnabled+";"+twofaConfigured+";"+lastlogin+"\n")
-		print "%i Users exported in %s" % (exportados,filename)
+					exportados += 1
+					line = ""
+					for i in args:
+						if i == "lastLoginDate":
+							if record[i]:
+								line = line + str(record[i]) + ";"
+							else:
+								line = line + ";"
+						elif i == "roleDescription":
+							for char in "'":
+								record[i] = record[i].replace(char,'')
+								record[i] = record[i].replace(u'\x9d',"")
+							line = line + str(record[i]) + ";"
+						else:
+							line = line + str(record[i]) + ";"
+						line = line + "\n"
+						myfile.write(line)
+			print "Exported %i lines in %s" % (exportados,filename)		
+	
+
+
+	def export_userscsv (self,filename=""):
+		url  = '/user-admin/v1/accounts/'+self.contract+'/users'
+		args = ["username","firstName","lastName","phone","contactId","userType","tfaEnabled","tfaConfigured","lastLoginDate","email","roleAssignments"]
+		self.export_info(url,args,filename)
 
 	def export_groupscsv (self,filename=""):
-		if not filename:
-			print "You need to specify a file to export users"
-			exit (2)
-		if path.exists(filename):
-			sure = ""
-			while sure !="y" and sure !="n" and sure !="no" and sure !="yes":
-				sure = raw_input("This file ("+filename+") exists. Do you want to overwrite it(y/n)? ").lower().strip()
-			if sure == "no" or sure == "n":
-				print "Exit. Please review filename for exporting Groups"
-				exit(3)
-			else:
-				print "Exporting groups..."
-		result = self.groups()
-		try:	
-			if str(result["httpStatus"]) == "403":
-				print "Permisions Error"
-				raise SystemExit
-			if str(result["status"]) == "401":
-				print "Permisions Error"
-				raise SystemExit
-	 	except (TypeError):
-			pass
-		with open (filename, "w") as myfile:
-			cabecera = " GROUPS FOR CONTRACT "
-	 		myfile.write(cabecera.center(50,"=")+"\n")
-	 		myfile.write("GroupID;accountId;groupName;topLevelGroup;parentGroupId;createdBy;createdDate\n")
-	 		exportados = 0
-			while result:
-				exportados +=1
-				group = result.pop()
-				createdBy = str(group["createdBy"])
-				topLevelGroup = str(group["topLevelGroup"])
-				groupName = str(group["groupName"])
-				parentGroupId = str(group["parentGroupId"])
-				accountId = str(group["accountId"])
-				groupId = str(group["groupId"])
-				createdDate = str(group["createdDate"])
-				myfile.write(groupId+";"+accountId+";"+groupName+";"+topLevelGroup+";"+parentGroupId+";"+createdBy+";"+createdDate+"\n")
-			print "%i Groups exported in %s" % (exportados,filename)
+		url = '/user-admin/v1/accounts/'+self.contract+'/groups'
+		args =["createdBy","topLevelGroup","groupName","parentGroupId","accountId","groupId","createdDate"]
+		self.export_info(url,args,filename)
 
 
 	def export_rolescsv (self,filename=""):
-		if not filename:
-			print "You need to specify a file to export users"
-			exit (2)
-		if path.exists(filename):
-			sure = ""
-			while sure !="y" and sure !="n" and sure !="no" and sure !="yes":
-				sure = raw_input("This file ("+filename+") exists. Do you want to overwrite it(y/n)? ").lower().strip()
-			if sure == "no" or sure == "n":
-				print "Exit. Please review filename for exporting Roles"
-				exit(3)
-			else:
-				print "Exporting roles..."
-		result = self.roles()
-		try:	
-			if str(result["httpStatus"]) == "403":
-				print "Permisions Error"
-				raise SystemExit
-			if str(result["status"]) == "401":
-				print "Permisions Error"
-				raise SystemExit
-	 	except (TypeError):
-			pass
-		with open (filename, "w") as myfile:
-			cabecera = " ROLES FOR CONTRACT "
-	 		myfile.write(cabecera.center(50,"=")+"\n")
-	 		myfile.write("roles_dump;roleName;roleDescription;contractTypeId;numUsers;type;modifiedBy;modifiedDate\n")
-	 		exportados = 0
-			while result:
-				exportados += 1
-				role = result.pop()
-				roleId = str(role["roleId"])
-				contractTypeId = str(role["contractTypeId"])
-				roleDescription = role["roleDescription"]
-				for char in "'":
-					roleDescription = roleDescription.replace(char,'')
-				## FIX por a error that I cant understand
-				roleDescription = roleDescription.replace(u'\x9d',"")
-				modifiedBy = str(role["modifiedBy"])
-				modifiedDate = str(role["modifiedDate"])
-				numUsers = str(role["numUsers"])
-				roleName = str(role["roleName"])
-				roletype = str(role["type"])
-				myfile.write(roleId+";"+roleName+";"+roleDescription+";"+contractTypeId+";"+numUsers+";"+roletype+";"+modifiedBy+";"+modifiedDate+"\n")
-			print "%i Roles exported in %s" % (exportados,filename)
+		url = '/user-admin/v1/accounts/'+self.contract+'/roles'
+		args = ["roleId","contractTypeId","roleDescription","modifiedBy","modifiedDate","numUsers","type"]
+		self.export_info(url,args,filename)
+
 
 	def export_allcsv (self,filename=""):
 		filename_users=filename+"_users"
