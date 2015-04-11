@@ -10,7 +10,25 @@ from pprint import pprint
 
 home = path.expanduser("~")
 config_file = "%s/.edgerc" % home
+block = "user"
+filename = "/tmp/akamai"
 
+
+def usage (command=""):
+	if command in ["test"]:
+		print "Usage: %s %s" % (str(sys.argv[0]),str(command))
+	elif command in ["command"]:
+		print "Usage: %s %s [command]" % (str(sys.argv[0]),str(command))
+	elif command in ["config","initiate"]:
+		print "Usage: %s %s block [filename]" % (str(sys.argv[0]),str(command))
+	elif command in ["export_users","export_groups","export_roles","export_all"]:
+		print "Usage: %s %s [filename [config_file[contract]]]" % (str(sys.argv[0]),str(command))
+	elif command == "config":
+		print "Usage: %s %s" % (str(sys.argv[0]),str(command))
+	elif command == "config":
+		print "Usage: %s %s" % (str(sys.argv[0]),str(command))
+	else:
+		print "Usage: %s help|config|initiate|test|export_users|export_groups|export_roles|export_all [argvs]" % str(sys.argv[0])
 
 class BlankDict(dict):
         def __missing__(self, key):
@@ -19,16 +37,17 @@ class BlankDict(dict):
 class AKAMAI:
 	def __init__(self,block,config_file,contract=""):
 		filename = config_file
+		self.contract = ""
 		if not path.exists(filename):
 			sure = ""
-			while sure !="y" and sure !="n" and sure !="no" and sure !="yes":
+			while sure !="y" and  sure !="yes":
 				sure = raw_input("This Config file don\'t exist. Do you want create it (y/n)?").lower().strip()
-			if sure == "no" or sure == "n":
-				print "Exit. Please review filename for exporting users"
-				exit(4)
-			else:
-				print "Creating config file"
-				self.install(block,filename)
+				if sure in ["n","no"]:
+					print "Exit. Please review filename for configuration"
+					exit(4)
+
+			print "Creating config file"
+			self.install(block,filename,contract)
 		if path.isfile(config_file):
 			try:
 				config = ConfigParser.ConfigParser()
@@ -36,23 +55,43 @@ class AKAMAI:
 				config.items(block)
 			except(ConfigParser.NoSectionError):
 				sure = ""
-				while sure !="y" and sure !="n" and sure !="no" and sure !="yes":
+				while sure !="y" and sure !="yes":
 					sure = raw_input("Section don\'t exists. Do you want create it (y/n)?").lower().strip()
-				if sure == "no" or sure == "n":
-					print "Exit. Please review config file in %s" % config_file
-					exit(5)
+					if sure == "no" or sure == "n":
+						print "Exit. Please review config file in %s" % config_file
+						exit(5)
+				contract = ""
+				print "Creating section"
+				if block == "papi":
+					contract = ""
 				else:
-					print "Creating section"
-					self.install(block,filename)
-					config = ConfigParser.ConfigParser()
-					config.readfp(open(config_file))				
+					while contract == "":
+						Config = ConfigParser.ConfigParser()
+						Config.read(filename)
+						if "papi" in Config.sections():
+							message = "Do you want Auto Search your contract?\n"
+							message += "This requires papi section: "
+							sure = raw_input(message).lower().strip()
+							if sure in ["yes","y"]:
+								contract = AKAMAI("papi",config_file).search_contract()
+							if sure in ["no","n"]:
+								message = "Insert your contract please:"
+								contract = raw_input(message).lower().strip()
+							if " " in contract:
+								contract = ""
+						else:
+							message = "Insert your contract please:"
+							contract = raw_input(message).lower().strip()
+							if " " in contract:
+								contract = ""
+
+				self.install(block,filename,contract)
+				config = ConfigParser.ConfigParser()
+				config.readfp(open(config_file))				
 			self.session = ""
 			for key, value in config.items(block):
 				# ConfigParser lowercases magically
-				if key == "example":
-					print "This is an EXAMPLE!!! Create your on config file and change this attribute"
-					exit()
-				elif key == "client_secret":
+				if key == "client_secret":
 					self.client_secret = value
 				elif key == "contract":
 					self.contract = value
@@ -67,11 +106,12 @@ class AKAMAI:
 		else:
 			print "Missing configuration file."
 			exit()
-	def install(self,block,filename):
+
+	def install(self,block,filename,contract):
 		Config = ConfigParser.ConfigParser()
-		config_items = ["host","access_token","client_secret","client_token","contract"]
+		config_items = ["host","access_token","client_secret","client_token"]
 		print "Take yours API information from luna control center"
-		print "You will need host, access_token, client_secret, client_token, contract"
+		print "You will need host, access_token, client_secret, client_token"
 		# First, if we have a 'default' section protect it here
 		if not path.exists(filename):
 			myfile = open (filename, "w")
@@ -112,9 +152,12 @@ class AKAMAI:
 						Config.set(block,'access_token',var)
 					elif i == "client_token":
 						Config.set(block,'client_token',var)
-					elif i == "contract":
-						Config.set(block,'contract',var)
+
+		if block != "papi":
+			Config.set(block,'contract',contract)
+
 		Config.write(config)
+		config.close ()
 		config.close ()
 		with open (filename, "r") as myfile:
  			data=myfile.read().replace('----DEFAULT----','default')
@@ -136,6 +179,12 @@ class AKAMAI:
 	 	dump = json.loads(json.dumps(result), object_hook=BlankDict)
 	 	return dump
 
+	def search_contract(self):
+		url = "/papi/v0/contracts/"
+		result = self.get_info(url)
+		contract = result["accountId"].replace("act_", "")
+		return contract
+
 	def export_info(self,url,args,filename=""):
 		if not filename:
 			print "You need to specify a file to export users"
@@ -151,7 +200,7 @@ class AKAMAI:
 				print "Exporting..."
 		result = self.get_info(url)
 		try:	
-			if str(result["httpStatus"]) == "403":
+			if str(result["httpStatus"]) == "403" or str(result["status"]) == "403":
 				print "Permisions Error"
 				raise SystemExit
 			if str(result["status"]) == "401":
@@ -184,7 +233,7 @@ class AKAMAI:
 								if record[i]:
 									line = line + str(record[i]) + ";"
 								else:
-									line = line + "NEVER";"
+									line = line + "NEVER;"
 							elif i == "roleAssignments":
 								line = line + roleName + ";" + groupName + ";"
 							elif i == "roleDescription":
@@ -244,89 +293,61 @@ class AKAMAI:
 		self.export_rolescsv(filename_roles)
 
 
+
 ## Codigo por defecto
 if len(sys.argv)>1:
 	command = str(sys.argv[1]).lower()
+	# Data Validation
+	if command in ["test"]:
+		arg = [2]
+	elif command in ["help"]:
+		arg = [2,3]
+	elif command in ["config","initiate"]:
+		arg = [3,4]
+	elif command in ["export_roles","export_groups","export_users","export_all"]:
+		arg = [3,4,5]
+	else:
+		arg = []
+		usage()
 
-	if command == "test":
-		print "Test"
-	elif command == "iniciate":
-		if len(sys.argv)==3:
-			block = sys.argv[2]
-		elif len(sys.argv)==2:
-			block = "user" 
+	if not (len(sys.argv) in arg):
+		usage(command)
+		exit (99)
+
+	if command == "help":
+		if len(sys.argv) == 2:
+			usage()
 		else:
-			print "error"
-			exit(1)
-		AKAMAI_instance = AKAMAI (block,config_file)
-	elif command == "export_users":
-		block = "user"
-		if len(sys.argv)==3:
-			AKAMAI_instance = AKAMAI(block,config_file).export_userscsv(sys.argv[2])
-		elif len(sys.argv)==4:
-			contract = sys.argv[3]
-			AKAMAI_instance = AKAMAI(block,config_file,contract).export_userscsv(sys.argv[2])
-		elif len(sys.argv)==5:
-			contract = sys.argv[3]
-			config_file = sys.argv[4]
-			AKAMAI_instance = AKAMAI(block,config_file,contract).export_userscsv(sys.argv[2])
-		else:
-			print "%s %s export_file [contract [config_file]]]" % (sys.argv[0], sys.argv[1])
-			exit(1)
-	elif command == "export_groups":
-		block = "user"
-		if len(sys.argv)==3:
-			AKAMAI_instance = AKAMAI(block,config_file).export_groupsscsv(sys.argv[2])
-		elif len(sys.argv)==4:
-			contract = sys.argv[3]
-			AKAMAI_instance = AKAMAI(block,config_file,contract).export_groupscsv(sys.argv[2])
-		elif len(sys.argv)==5:
-			contract = sys.argv[3]
-			config_file = sys.argv[4]
-			AKAMAI_instance = AKAMAI(block,config_file,contract).export_groupscsv(sys.argv[2])
-		else:
-			print "%s %s export_file [contract [config_file]]]" % (sys.argv[0], sys.argv[1])
-			exit(1)
-	elif command == "export_roles":
-		block = "user"
-		if len(sys.argv)==3:
-			AKAMAI_instance = AKAMAI(block,config_file).export_rolescsv(sys.argv[2])
-		elif len(sys.argv)==4:
-			contract = sys.argv[3]
-			AKAMAI_instance = AKAMAI(block,config_file,contract).export_rolescsv(sys.argv[2])
-		elif len(sys.argv)==5:
-			contract = sys.argv[3]
-			config_file = sys.argv[4]
-			AKAMAI_instance = AKAMAI(block,config_file,contract).export_rolesscsv(sys.argv[2])
-		else:
-			print "%s %s export_file [contract [config_file]]]" % (sys.argv[0], sys.argv[1])
-			exit(1)
-	elif command == "export_all":
-		block = "user"
-		if len(sys.argv)==3:
-			AKAMAI_instance = AKAMAI(block,config_file).export_allcsv(sys.argv[2])
-		elif len(sys.argv)==4:
-			contract = sys.argv[3]
-			AKAMAI_instance = AKAMAI(block,config_file,contract).export_allcsv(sys.argv[2])
-		elif len(sys.argv)==5:
-			contract = sys.argv[3]
-			config_file = sys.argv[4]
-			AKAMAI_instance = AKAMAI(block,config_file,contract).export_allcsv(sys.argv[2])
-		else:
-			print "%s %s export_file [contract [config_file]]]" % (sys.argv[0], sys.argv[1])
-			exit(1)
-	elif command == "config":
-		if len(sys.argv)==3:
-			block = sys.argv[2]
-		elif len(sys.argv)==2:
-			block = "user" 
-		else:
-			print "error"
-			exit(1)
-		install(config_file,block)
+			command = sys.argv[2]
+			usage(command)
+	elif command in ["config","initiate"]:
+		block = sys.argv[2]
+		if len(sys.argv) == 4:
+			config_file = sys.argv[3]
+		AKAMAI_INSTANCE = AKAMAI (block,config_file)
+	elif command in ["export_roles","export_groups","export_users","export_all"]:
+		if len(sys.argv) == 3:
+			filename = sys.argv[2]
+		elif len(sys.argv) == 4:
+			filename = sys.argv[2]
+			config_file = sys.argv[3]
+		elif len(sys.argv) == 5:
+			filename = sys.argv[2]
+			config_file = sys.argv[3]
+			contract = sys.argv[4]
+		if command == "export_users":	
+			AKAMAI_INSTANCE = AKAMAI (block,config_file).export_userscsv(filename)
+		elif command == "export_groups":	
+			AKAMAI_INSTANCE = AKAMAI (block,config_file).export_groupscsv(filename)
+		elif command == "export_roles":	
+			AKAMAI_INSTANCE = AKAMAI (block,config_file).export_rolescsv(filename)
+		elif command == "export_all":	
+			AKAMAI_INSTANCE = AKAMAI (block,config_file).export_allcsv(filename)
+	elif command == "test":
+		pass
 else:
-	print "Usage: %s config|initiate|test|export_users|export_groups|export_roles|export_all [argvs]" % str(sys.argv[0])
-	exit(99)
+		usage ()
+		exit (99)
 
 
 
