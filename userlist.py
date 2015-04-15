@@ -139,7 +139,7 @@ class AKAMAI:
 			var = ""
 			while not var:
 				message = "Insert your %s please:" % i
-				var = raw_input(message).replace("https://", "").replace("/", "").strip()
+				var = raw_input(message).strip()
 				if " " in var:
 					print "Error"
 					var = ""
